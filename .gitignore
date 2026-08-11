@@ -1,0 +1,34 @@
+# Python
+__pycache__/
+*.pyc
+*.pyo
+.pytest_cache/
+*.egg-info/
+build/
+dist/
+.venv/
+venv/
+
+# PyInstaller
+*.spec.bak
+
+# Персональные данные и рабочие файлы приложения — НИКОГДА не публикуются:
+# реальные шаблоны писем, сгенерированные письма, выгрузки Excel с ИНН/ФИО,
+# выписки ЕГРЮЛ, локальная конфигурация/реестр пользователя.
+/examples/
+/templates/
+/letters/
+/output/
+*.docx
+*.xlsx
+*.xls
+egrul_pdfs/
+config.json
+egrul_cache.json
+registry.sqlite3
+*.sqlite3
+
+# IDE / OS
+.vscode/
+.idea/
+.DS_Store
