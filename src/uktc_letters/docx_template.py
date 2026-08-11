@@ -13,10 +13,14 @@
 
   Простые текстовые плейсхолдеры — вставляются как обычный текст в нужном
   месте документа (в адресном блоке, в теле письма, в подписи):
-    {{RECIPIENT_BLOCK}}   {{GREETING}}         {{TC_NAME}}
-    {{TC_ADDRESS}}        {{DEADLINE_DATE}}    {{EXECUTOR_NAME}}
-    {{EXECUTOR_PHONE}}    {{SIGNATORY_NAME}}   {{SUBJECT_WORD_FORM}}
-    {{VERB_OSUSHESTVLYAL}} {{OBJECT_WORD}}     {{TRADE_OBJECT_PHRASE}}
+    {{RECIPIENT_BLOCK}}          {{GREETING}}         {{TC_NAME}}
+    {{RECIPIENT_BLOCK_MAIN}}     {{TC_ADDRESS}}        {{DEADLINE_DATE}}
+    {{RECIPIENT_BLOCK_ADDRESS}}  {{EXECUTOR_NAME}}    {{EXECUTOR_PHONE}}
+    {{SIGNATORY_NAME}}           {{SUBJECT_WORD_FORM}} {{VERB_OSUSHESTVLYAL}}
+    {{OBJECT_WORD}}              {{TRADE_OBJECT_PHRASE}}
+  (RECIPIENT_BLOCK_MAIN/RECIPIENT_BLOCK_ADDRESS — та же информация, что и
+  в RECIPIENT_BLOCK, но раздельно на два абзаца с разным отступом —
+  см. docs/TEMPLATE_GUIDE.md.)
 
   Таблица объектов торговли — в шаблоне должна быть готовая таблица с
   заголовком (как в образцах) и ОДНОЙ строкой-образцом данных сразу под

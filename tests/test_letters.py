@@ -38,6 +38,16 @@ def test_plan_letter_personal_variant(tmp_path):
     assert plan.variant == "personal"
     assert "Иванову" in plan.context["RECIPIENT_BLOCK"]
     assert plan.context["GREETING"] == "Уважаемый Иван Иванович!"
+
+    # RECIPIENT_BLOCK_MAIN/RECIPIENT_BLOCK_ADDRESS — та же информация, но
+    # раздельно (должность/УК/ФИО отдельно от юр.адреса, см. letters.py) —
+    # вместе они складываются обратно в RECIPIENT_BLOCK.
+    assert "Иванову" in plan.context["RECIPIENT_BLOCK_MAIN"]
+    combined = "\n".join(
+        part for part in (plan.context["RECIPIENT_BLOCK_MAIN"], plan.context["RECIPIENT_BLOCK_ADDRESS"]) if part
+    )
+    assert combined == plan.context["RECIPIENT_BLOCK"]
+
     assert plan.context["SUBJECT_WORD_FORM"] == "хозяйствующих субъектах"  # 2 строки -> мн.ч.
     assert plan.context["VERB_OSUSHESTVLYAL"] == "осуществляли"
     assert len(plan.row_specs) == 2
@@ -57,6 +67,11 @@ def test_plan_letter_impersonal_variant_known_tc(tmp_path):
     assert plan.context["RECIPIENT_BLOCK"].startswith("Администрация торгового центра")
     assert plan.context["GREETING"] == ""
     assert plan.context["SUBJECT_WORD_FORM"] == "хозяйствующем субъекте"  # 1 строка -> ед.ч.
+
+    # RECIPIENT_BLOCK_MAIN/RECIPIENT_BLOCK_ADDRESS для обезличенного
+    # варианта: "Администрация торгового центра" отдельно от адреса.
+    assert plan.context["RECIPIENT_BLOCK_MAIN"] == "Администрация торгового центра"
+    assert plan.context["RECIPIENT_BLOCK_ADDRESS"] == plan.address_display
 
 
 def test_plan_letter_deadline_uses_settings_days_and_holidays(tmp_path):

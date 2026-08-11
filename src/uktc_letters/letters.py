@@ -102,8 +102,16 @@ def _build_personal_block(
     position_raw: str | None,
     company_display: str,
     address_display: str,
-) -> tuple[list[str], str, bool]:
-    """Вернуть (строки адресного блока, приветствие, low_confidence)."""
+) -> tuple[list[str], list[str], str, bool]:
+    """Вернуть (строки должность/УК/ФИО, строки адреса, приветствие,
+    low_confidence).
+
+    Раздельно на две группы строк — а не одним списком — потому что в
+    образцах писем эти две части адресного блока набраны с РАЗНЫМ отступом
+    (должность/УК/ФИО — одним уровнем, юридический адрес — увеличенным,
+    "лесенкой") — см. `docx_template`/шаблон, где это два разных абзаца
+    с разными `{{RECIPIENT_BLOCK_MAIN}}`/`{{RECIPIENT_BLOCK_ADDRESS}}`.
+    """
     if gender is None:
         gender = guess_gender_by_patronymic(patronymic)
 
@@ -112,15 +120,14 @@ def _build_personal_block(
     greeting_word = "Уважаемая" if gender == "female" else "Уважаемый"
     greeting = f"{greeting_word} {greeting_name}!" if greeting_name.strip() else ""
 
-    lines = [position_to_dative(position_raw), company_display, fio_dative]
-    if address_display:
-        lines.append(address_display)
-    return lines, greeting, low_conf
+    main_lines = [position_to_dative(position_raw), company_display, fio_dative]
+    address_lines = [address_display] if address_display else []
+    return main_lines, address_lines, greeting, low_conf
 
 
 def _resolve_personal_variant(
     record: ContactRecord, egrul: EgrulData | None
-) -> tuple[list[str], str, bool] | None:
+) -> tuple[list[str], list[str], str, bool] | None:
     """Попытаться собрать персональный адресный блок из данных ЕГРЮЛ
     (приоритетно, т.к. они точнее и содержат пол/должность) либо из
     справочника УК/ТЦ. Возвращает None, если данных недостаточно —
@@ -131,13 +138,14 @@ def _resolve_personal_variant(
             # другая организация, а не физлицо. Подставляем как есть, без
             # попытки определить "Уважаемый/Уважаемая".
             company_display = format_company_name(egrul.short_name or egrul.full_name or "")
-            lines = [
+            main_lines = [
                 position_to_dative(egrul.representative_position),
                 company_display,
                 egrul.representative_org_name or "",
-                format_legal_address(egrul.legal_address or ""),
             ]
-            return lines, "", False
+            legal_address = format_legal_address(egrul.legal_address or "")
+            address_lines = [legal_address] if legal_address else []
+            return main_lines, address_lines, "", False
         if egrul.representative_surname:
             company_display = format_company_name(egrul.short_name or egrul.full_name or "")
             return _build_personal_block(
@@ -158,12 +166,12 @@ def _resolve_personal_variant(
         # организация (например, "Управляющая организация: ООО «Х»"), а не
         # физлицо — без попытки определить "Уважаемый/Уважаемая" (по
         # аналогии с тем же случаем в выписке ЕГРЮЛ, ТЗ п.6).
-        lines = [
+        main_lines = [
             position_to_dative(director.position_raw),
             company_display,
             director.organization_name,
         ]
-        return lines, "", False
+        return main_lines, [], "", False
 
     if director.fio is None:
         return None
@@ -201,7 +209,8 @@ def plan_letter(
     variant = "impersonal"
     status = LetterStatus.AUTO_IMPERSONAL
     reason = ""
-    recipient_lines: list[str] = ["Администрация торгового центра", address_display]
+    recipient_main_lines: list[str] = ["Администрация торгового центра"]
+    recipient_address_lines: list[str] = [address_display] if address_display else []
     greeting = ""
     low_confidence = False
 
@@ -227,7 +236,7 @@ def plan_letter(
 
         personal = _resolve_personal_variant(record, egrul) if (record is not None or egrul) else None
         if personal is not None:
-            recipient_lines, greeting, low_confidence = personal
+            recipient_main_lines, recipient_address_lines, greeting, low_confidence = personal
             variant = "personal"
             status = LetterStatus.MANUAL_REVIEW if low_confidence else LetterStatus.AUTO_PERSONAL
             if low_confidence:
@@ -247,8 +256,18 @@ def plan_letter(
 
     deadline = compute_deadline(formation_date, settings.deadline_days, settings.holiday_dates())
 
+    recipient_main_lines = [line for line in recipient_main_lines if line is not None]
+    recipient_address_lines = [line for line in recipient_address_lines if line is not None]
     context: dict[str, str] = {
-        "RECIPIENT_BLOCK": "\n".join(line for line in recipient_lines if line is not None),
+        # {{RECIPIENT_BLOCK}} — весь адресный блок одним куском (для
+        # шаблонов с одним плейсхолдером на один абзац, см. TEMPLATE_GUIDE).
+        "RECIPIENT_BLOCK": "\n".join(recipient_main_lines + recipient_address_lines),
+        # {{RECIPIENT_BLOCK_MAIN}}/{{RECIPIENT_BLOCK_ADDRESS}} — то же самое,
+        # но раздельно: в образцах писем должность/УК/ФИО и юридический
+        # адрес набраны с разным отступом ("лесенкой"), поэтому их удобнее
+        # класть в два разных абзаца с разным форматированием.
+        "RECIPIENT_BLOCK_MAIN": "\n".join(recipient_main_lines),
+        "RECIPIENT_BLOCK_ADDRESS": "\n".join(recipient_address_lines),
         "GREETING": greeting,
         "TC_NAME": tc_name,
         "TC_ADDRESS": address_display,
