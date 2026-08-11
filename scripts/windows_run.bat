@@ -14,8 +14,20 @@ call .venv\Scripts\activate.bat
 
 echo Устанавливаю зависимости...
 pip install -r requirements.txt
+if errorlevel 1 (
+    echo.
+    echo ОШИБКА при установке зависимостей — см. текст ошибки выше.
+    pause
+    exit /b 1
+)
 
 set PYTHONPATH=%cd%\src
 python -m uktc_letters.main
+if errorlevel 1 (
+    echo.
+    echo Приложение завершилось с ошибкой — см. текст выше.
+    pause
+    exit /b 1
+)
 
 pause

@@ -20,7 +20,10 @@ datas = []
 datas += collect_data_files("pymorphy3_dicts_ru")
 hiddenimports = collect_submodules("pymorphy3_dicts_ru")
 
-repo_root = Path(__file__).resolve().parent.parent
+# В .spec-файлах PyInstaller выполняет код через exec(), поэтому обычной
+# переменной __file__ здесь нет — вместо неё PyInstaller сам подставляет
+# в глобальное пространство имён SPECPATH (папка, где лежит .spec).
+repo_root = Path(SPECPATH).resolve().parent
 entry_point = str(repo_root / "src" / "uktc_letters" / "main.py")
 
 a = Analysis(
